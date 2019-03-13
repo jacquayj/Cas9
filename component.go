@@ -134,7 +134,7 @@ func (c *Component) render(all interface{}) template.HTML {
 	return template.HTML(sb.String())
 }
 
-func (c *Component) Events(em SelectorEvent) {
+func (c *Component) RegisterEvents(em SelectorEvents) {
 
 }
 

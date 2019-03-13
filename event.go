@@ -8,7 +8,7 @@ type EventObj struct {
 
 type EventHandler func(EventObj)
 
-type SelectorEvent map[string]Event
+type SelectorEvents map[string]Event
 
 type Event struct {
 	On      string
