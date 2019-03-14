@@ -10,10 +10,12 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 type ComponentView interface {
 	Render() string
+	Styles() string
 
 	PreProcessTemplate() string
 	Refresh()
@@ -23,6 +25,9 @@ type ComponentView interface {
 	Init(ComponentView)
 	GetParent() ComponentView
 	GetVDList() VirtualDOMList
+	GetStyleTagVDOM() *vDOM
+	GetRenderedComponents() map[string]ComponentView
+	GetStyles() map[string]*vDOM
 }
 
 type Component struct {
@@ -84,6 +89,10 @@ func (c *Component) GetParent() ComponentView {
 
 func (c *Component) GetVDList() VirtualDOMList {
 	return c.VDList
+}
+
+func (c *Component) GetRenderedComponents() map[string]ComponentView {
+	return c.renderedComponents
 }
 
 func (c *Component) DeleteDOM() {
@@ -185,6 +194,71 @@ func (c *Component) Refresh() {
 		oldNode.Call("replaceWith", jsVal)
 	}
 }
+
+func (c *Component) GetStyles() map[string]*vDOM {
+	theMap := make(map[string]*vDOM)
+
+	theMap[getType(c.Parent)] = c.Parent.GetStyleTagVDOM()
+
+	var getStyles func(map[string]ComponentView)
+	getStyles = func(childComps map[string]ComponentView) {
+		for _, subComp := range childComps {
+			comp := subComp.GetParent()
+			theMap[getType(comp)] = comp.GetStyleTagVDOM()
+			getStyles(subComp.GetRenderedComponents())
+		}
+	}
+
+	getStyles(c.renderedComponents)
+
+	return theMap
+}
+
+func getType(myvar interface{}) (res string) {
+	t := reflect.TypeOf(myvar)
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+		res += "*"
+	}
+	return res + t.Name()
+}
+
+func (c *Component) GetStyleTagVDOM() *vDOM {
+	styleCont := c.Parent.Styles()
+
+	styleNode := &html.Node{
+		Type:     html.ElementNode,
+		DataAtom: atom.Style,
+		Attr: []html.Attribute{
+			html.Attribute{Key: "cas-9-style", Val: getType(c.Parent)},
+			html.Attribute{Key: "type", Val: "text/css"},
+		},
+		Data: "style",
+	}
+
+	contNode := &html.Node{
+		Type: html.TextNode,
+		Data: styleCont,
+	}
+
+	vd := &vDOM{
+		Node:            styleNode,
+		ParentComponent: c,
+	}
+	vdCont := &vDOM{
+		Node:            contNode,
+		ParentComponent: c,
+	}
+
+	vd.VFirstChild = vdCont
+	vd.FirstChild = vdCont.Node
+	vdCont.VParent = vd
+	vdCont.Parent = vd.Node
+
+	return vd
+}
+
+func (c *Component) Styles() string { return "" }
 
 func (c *Component) GenerateNewvDOM() VirtualDOMList {
 	c.Init(c.Parent)

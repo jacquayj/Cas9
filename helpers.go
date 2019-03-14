@@ -7,6 +7,7 @@ import (
 )
 
 func AttachTo(selector string, c ComponentView) {
+	head := js.Global().Get("document").Get("head")
 	mainNode := js.Global().Get("document").Call("querySelector", selector)
 
 	now := time.Now()
@@ -15,8 +16,13 @@ func AttachTo(selector string, c ComponentView) {
 
 	dom := c.GenerateNewvDOM()
 
+	styles := c.GetStyles()
+	for _, style := range styles {
+		head.Call("appendChild", style.BuildDOM())
+	}
+
 	for _, d := range dom {
-		d.VParent.JSNode = &mainNode
+		//d.VParent.JSNode = &mainNode
 		mainNode.Call("appendChild", d.BuildDOM())
 	}
 
