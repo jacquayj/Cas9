@@ -1,4 +1,4 @@
-# Cas9: A Client-Side Web Framework for Go
+# Cas9: A Client-Side Web Library for Go
 
 ## Build Instructions
 
